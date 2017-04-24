@@ -6,6 +6,7 @@ class EpsilonNFA():
     def __init__(self,node:NodeInAST):
         self.num_of_state = 0
         self.transition_list = []
+        self.delta_transition = []
         self.initial_state = 0
         self.final_state = 0
         if node == None:
@@ -82,6 +83,15 @@ class EpsilonNFA():
         self.transition_list.append((0,node.tag,1))
         self.initial_state = 0
         self.final_state = 1
+
+    # transition list 는 모든 transition의 합이기 때문에 state 별로 transiton 할 수 있는 list delta_transition을 만든다.
+    def buildDeltaTransition(self):
+        if self.transition_list == None:
+            return
+        self.delta_transition = [[] for i in range(self.num_of_state)]
+        for trans in self.transition_list:
+            self.delta_transition[trans[0]].append((trans[1],trans[2]))
+
 
 
 def getNFAfromRegExpStr(regexp):
