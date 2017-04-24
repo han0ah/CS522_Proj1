@@ -83,9 +83,13 @@ class EpsilonNFA():
         self.initial_state = 0
         self.final_state = 1
 
-regexp = "((a+b)(c+d))*"
-ast = getASTfromRegExpStr(regexp)
-eNFA = EpsilonNFA(ast)
+
+def getNFAfromRegExpStr(regexp):
+    #TODO : 테스트 regexp 설정 제거
+    regexp = "((a+b)(c+d))*"
+    ast = getASTfromRegExpStr(regexp)
+    eNFA = EpsilonNFA(ast)
+    return eNFA
 
 '''
 # Test Code for epsilon NFA Construction
