@@ -3,13 +3,13 @@
 from REtoAST import getASTfromRegExpStr, NodeInAST
 
 class EpsilonNFA():
-    def __init__(self):
+    def __init__(self,node:NodeInAST):
         self.num_of_state = 0
         self.transition_list = []
         self.initial_state = 0
-        self.final_states = []
-
-    def construct(self, node:NodeInAST):
+        self.final_state = 0
+        if node == None:
+            return
         if node.tag == '*':
             self.constructStar(node)
         elif node.tag == '+':
@@ -35,10 +35,20 @@ class EpsilonNFA():
         NFA2 = EpsilonNFA()
         NFA2.construct(node.left_child)
 
+        self.num_of_state = NFA1.num_of_state + NFA2.num_of_state
         nfa2StartNum = NFA1.num_of_state
+        # left child NFA의 transition 추가
+        for transition in NFA1.transition_list:
+            self.transition_list.append(transition)
+        # right child NFA의 transition 추가
         for transition in NFA2.transition_list:
-            transition[0] += nfa2StartNum
-            transition[2] += nfa2StartNum
+            self.transition_list.append(
+                (transition[0]+nfa2StartNum, transition[1], transition[2]+nfa2StartNum)
+            )
+        # left child NFA의 final state를 right child NFA의 start state로 e-move로 연결
+        self.transition_list.append( (NFA1.final_state, 'e', nfa2StartNum) )
+
+        self.final_state = NFA2.final_state + nfa2StartNum
 
 
     #M(a), M(epsilon)
@@ -46,11 +56,11 @@ class EpsilonNFA():
         self.num_of_state = 2
         self.transition_list.append((0,node.tag,1))
         self.initial_state = 0
-        self.final_states.append(1)
+        self.final_state = 1
 
 s = "abc"
 getASTfromRegExpStr(s)
-t = EpsilonNFA(NodeInAST('.'))
+t = EpsilonNFA(NodeInAST('a'))
 
 debug = 1
 
