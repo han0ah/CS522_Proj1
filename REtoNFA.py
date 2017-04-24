@@ -9,6 +9,8 @@ class EpsilonNFA():
         self.delta_transition = []
         self.initial_state = 0
         self.final_state = 0
+        self.symbols = []
+
         if node == None:
             return
         if node.tag == '*':
@@ -92,11 +94,22 @@ class EpsilonNFA():
         for trans in self.transition_list:
             self.delta_transition[trans[0]].append((trans[1],trans[2]))
 
+    # Symbol 목록을 생성한다
+    def buildSymbols(self):
+        for trans in self.transition_list:
+            if (trans[1] == 'e'): # epsilon은 무시
+                continue;
+            duplicate = False
+            for j in range(len(self.symbols)):
+                if trans[1] == self.symbols[j]:
+                    duplicate = True
+                    break
+            if ( not duplicate ):
+                self.symbols.append(trans[1])
+
 
 
 def getNFAfromRegExpStr(regexp):
-    #TODO : 테스트 regexp 설정 제거
-    regexp = "((a+b)(c+d))*"
     ast = getASTfromRegExpStr(regexp)
     eNFA = EpsilonNFA(ast)
     return eNFA

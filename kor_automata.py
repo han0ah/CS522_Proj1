@@ -30,7 +30,7 @@ index_map_to_chongsung = [1,2,3,4,5,6,7,-1,8,9,10,11,12,13,14,15,16,17,-1,18,19,
 def read_automata():
     global delta_trans
     global symbol_to_index
-    f = open('dfa.txt','r', encoding='utf-8')
+    f = open('auto_dfa.txt','r', encoding='utf-8')
     num_symbol = 0
     while(True): # Symbol 목록을 입력받는다. 각 symbol 에게 0부터 할당된 index를 설정한다.
         c = f.read(1)
@@ -59,7 +59,7 @@ def update_screen():
     os.system('cls')
     for character in print_buffer:
         sys.stdout.write(character)
-    sys.stdout.write("\n한글 자모 입력 후 엔터를 쳐 주세요. [영어 D(d) = Delete, Q(q) = 종료] : ")
+    sys.stdout.write("\nAU한글 자모 입력 후 엔터를 쳐 주세요. [영어 D(d) = Delete, Q(q) = 종료] : ")
 
 '''
 새로 들어온 symbol처리 type0

@@ -12,7 +12,7 @@ tokens = (
 )
 
 # Regular expression rules for simple tokens
-t_SYMBOL  = r'[a-zA-z0-9_\u3131-\u3153]'
+t_SYMBOL  = r'[a-zA-z0-9_\u3131-\u3163]'
 t_PLUS    = r'\+'
 t_STAR   = r'\*'
 t_LPAREN  = r'\('
