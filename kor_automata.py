@@ -7,6 +7,7 @@ num_delta = 0 # delta 함수 transition 개수
 
 delta_trans = [] #delta 함수 list of dictionary 형태이다.
 print_buffer = [] # 입력된 symbol로 부터 만든 한글 출력 buffer
+final_states = [] # 최종 state 목록
 symbol_to_index = {} # symbol을 index로 mapping
 state_list = [] # Automata에서 이동한 상태 목록
 current_character = [] # 현재 만들고 있는 Character
@@ -33,7 +34,8 @@ index_map_to_chongsung = [1,2,3,4,5,6,7,-1,8,9,10,11,12,13,14,15,16,17,-1,18,19,
 def read_automata():
     global delta_trans
     global symbol_to_index
-    f = open('dfa.txt','r', encoding='utf-8')
+    global final_states
+    f = open('auto_dfa.txt','r', encoding='utf-8')
     num_symbol = 0
     while(True): # Symbol 목록을 입력받는다. 각 symbol 에게 0부터 할당된 index를 설정한다.
         c = f.read(1)
@@ -42,8 +44,14 @@ def read_automata():
         symbol_to_index[c] = num_symbol
         num_symbol+=1
 
-    num_state = int(f.readline()) # state 의 개수와 delta 함수 transition의 개수
-    num_delta = int(f.readline())
+    num_state = int(f.readline()) # state 의 개수와
+
+    '''
+    final_states = f.readline().strip().split(',')
+    final_states = [int(state) for state in final_states]
+    '''
+
+    num_delta = int(f.readline()) # delta 함수 transition의 개수
 
     delta_trans = [{} for i in range(num_state)]
     for i in range(num_delta):  # 0 ㄱ 1 형태의 transition 입력을 받아서 delta_trans 변수에 설정한다.
@@ -63,16 +71,17 @@ def update_screen():
     os.system('cls')
     for character in print_buffer:
         sys.stdout.write(character)
-    sys.stdout.write("\nAU한글 자모 입력 후 엔터를 쳐 주세요. [영어 D(d) = Delete, Q(q) = 종료] : ")
+    sys.stdout.write("\n한글 자모 입력 후 엔터를 쳐 주세요. [영어 D(d) = Delete, Q(q) = 종료] : ")
 
 '''
 새로 들어온 symbol처리 type0
 단순히 print_buffer를 하나 늘리고 symbol을 추가해줌.
 '''
 def process_new_symobl_type0(symbol):
-    global current_character
+    global current_character, last_buffer_backup
     print_buffer.append(chr(symbol))
     current_character = print_buffer[-2:] if len(print_buffer) > 1 else print_buffer[-1:]
+    last_buffer_backup.append(current_character)
     return
 
 '''
@@ -80,7 +89,7 @@ def process_new_symobl_type0(symbol):
 현재 버퍼에 모음 symbol 하나를 추가해서 변경 하는 경우이다. 예) ㄱ + ㅏ -> 가 or 고 + ㅐ -> 괘
 '''
 def process_new_symobl_type1(symbol, lastBuffer):
-    global current_character
+    global current_character, last_buffer_backup
     moum_hapsung = {8:{}, 13:{}, 18:{}}
     moum_hapsung[8]['ㅏ'] = 'ㅘ'
     moum_hapsung[8]['ㅐ'] = 'ㅙ'
@@ -105,6 +114,10 @@ def process_new_symobl_type1(symbol, lastBuffer):
     print_buffer.append(chr(newCharacter))
 
     current_character = print_buffer[-1:]
+    last_buffer_backup.append(current_character)
+    if (len(last_buffer_backup[-2]) == 2): # [[하ㄱ], [교]] 이런 형태로 들어있음면 ㄱ,교로 바꿔주어야 한다.
+        last_buffer_backup[-2].pop(0)
+        last_buffer_backup = last_buffer_backup[-2:]
     return
 
 
@@ -113,7 +126,7 @@ def process_new_symobl_type1(symbol, lastBuffer):
 자음이 있었는데 자음이 또 들어와서 현재 버퍼와 이전 버퍼 두가지를 변경해야 하는 경우이다.
 '''
 def process_new_symobl_type2(symbol, lastBuffer):
-    global current_character
+    global current_character, last_buffer_backup
     kyupjaum_hapsung = {1:{}, 4:{}, 8:{}, 17:{}} # 1:ㄱ , 4:ㄴ, 8:ㄹ, 16:ㅂ
     kyupjaum_hapsung[1]['ㅅ'] = 3 # ㄳ
     kyupjaum_hapsung[4]['ㅈ'] = 5 # ㄵ
@@ -144,6 +157,7 @@ def process_new_symobl_type2(symbol, lastBuffer):
     print_buffer.append(chr(symbol))
 
     current_character = print_buffer[-2:] if len(print_buffer) > 1 else print_buffer[-1:]
+    last_buffer_backup.append(current_character)
     return
 
 # 새로운 symbol을 처리한다.
@@ -192,8 +206,25 @@ while(True):
         continue
     if (c=='q' or c=='Q'): # 종료처리
         break
-    elif (c=='d' or c=='D'): # Delete를 누르면 마지막 버퍼를 하나 지우고 automata를 시작 상태로 돌린다.
-        if (len(print_buffer) > 0):
+    elif (c=='d' or c=='D'): # Delete에 대한 구현
+        if (len(print_buffer) < 1): # 출력한게 없으면 무시
+            continue
+        if (len(last_buffer_backup) > 0): # 만들고 있는 한글을 지울 때
+            for i in range(len(current_character)):
+                print_buffer.pop()
+            last_buffer_backup.pop()
+
+            new_characters = last_buffer_backup[-1] if len(last_buffer_backup) > 0 else []
+            current_character = new_characters
+            for character in new_characters:
+                print_buffer.append(character)
+
+            if len(state_list) > 0:
+                state_list.pop()
+                now_state = state_list[-1]
+            else:
+                now_state = 0
+        else: # 완성된 한글 하나를 지울 때
             print_buffer.pop()
             now_state = 0
     else:

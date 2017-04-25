@@ -4,7 +4,8 @@ from REtoNFA import EpsilonNFA, getNFAfromRegExpStr
 class DFA():
     def __init__(self):
         self.num_of_state = 0
-        self.transition_list = []
+        self.transition_list = []   # t = [(1,a,2), (1,b,3) ...] 이런 형식
+        self.transition_matrix = [{}] # t[1][a] = 2, t[1][b] = 3 이런 형식
         self.initial_state = 0
         self.final_states = []
         self.symbols = []
@@ -13,6 +14,13 @@ mDFA = None
 mNFA = None
 eClousers = [] # NFA 각 state 들의 epsilon clouser
 dfaStateToSetOfNFAStates = [] # 새로 생성될 dfa의 state와 이에 해당하는 NFA State 들 집합의 목록
+
+
+def hasFinalState(setOfStates):
+    for state in setOfStates:
+        if (state == mNFA.final_state):
+            return True
+    return False
 
 # 각 State 마다 epsilonClouser를 BFS 방식으로 구해 놓는다.
 def constructEClousers():
@@ -87,12 +95,77 @@ def parseNFAtoDFA():
             new_dfa_state_num = getStateNumber(reachable_states)
             if (new_dfa_state_num == -1): # 기존에 없는 state이면 state 개수 하나를 추가한다.
                 dfaStateToSetOfNFAStates.append(reachable_states)
+                mDFA.transition_matrix.append({})
                 new_dfa_state_num = mDFA.num_of_state
+                if (hasFinalState(reachable_states)):
+                    mDFA.final_states.append(new_dfa_state_num)
                 mDFA.num_of_state += 1
 
             mDFA.transition_list.append((i, symbol, new_dfa_state_num))
+            mDFA.transition_matrix[i][symbol] = new_dfa_state_num
 
         i += 1
+
+#https://www.tutorialspoint.com/automata_theory/dfa_minimization.htm 참조
+def DFAtoMDFA(bigDFA:DFA):
+    sameCheck = [[True]*bigDFA.num_of_state for i in range(bigDFA.num_of_state)]
+
+    # Final과 Final이 아닌 것 끼리는 분류
+    for i in range(bigDFA.num_of_state-1):
+        for j in range(i+1,bigDFA.num_of_state):
+            if (i in bigDFA.final_states) !=(j in bigDFA.final_states):
+                sameCheck[i][j] = sameCheck[j][i] = False
+
+    while(True):
+        thereIsChange = False
+        for i in range(bigDFA.num_of_state - 1):
+            for j in range(i + 1, bigDFA.num_of_state):
+                if not sameCheck[i][j] :
+                    continue
+                for symbol in bigDFA.symbols:
+                    if not sameCheck[i][j]:
+                        # sameCheck[i][j]가 원래 True 였어야 여기까지 오는데 변화가 생긴 것이므로 thereIsChange를 True로 해준다.
+                        thereIsChange = True
+                        break
+                    p = bigDFA.transition_matrix[i][symbol] if (symbol in bigDFA.transition_matrix[i]) else -2
+                    q = bigDFA.transition_matrix[j][symbol] if (symbol in bigDFA.transition_matrix[j]) else -2
+
+                    if ((p+1)*(q+1) < 0): # 둘 중 하나면 갈 수 있는 곳이 있으면
+                        sameCheck[i][j] = sameCheck[j][i] = False
+
+                    if (p > 0 and q > 0):
+                        sameCheck[i][j] = sameCheck[j][i] = sameCheck[p][q]
+
+                if not sameCheck[i][j]:
+                    thereIsChange = True
+
+        if(not thereIsChange): # 변화가 없으면 반복문 종료
+            break
+
+    newDFA = DFA()
+    newDFA.symbols = bigDFA.symbols
+    newDFA.num_of_state = 1
+    new_state_map = [-1]*bigDFA.num_of_state
+    new_state_map[0] = 0
+
+    for i in range(1,bigDFA.num_of_state):
+        for j in range(0, i):
+            if (sameCheck[i][j]):
+                new_state_map[i] = new_state_map[j]
+        if (new_state_map[i] == -1):
+            new_state_map[i] = newDFA.num_of_state
+            newDFA.num_of_state += 1
+
+    newDFA.transition_matrix = [{} for i in range(newDFA.num_of_state)]
+    for trans in bigDFA.transition_list:
+        new_st = new_state_map[trans[0]]
+        symbol = trans[1]
+        new_en = new_state_map[trans[2]]
+        if symbol not in newDFA.transition_matrix[new_st]:
+            newDFA.transition_matrix[new_st][symbol] = new_en
+            newDFA.transition_list.append((new_st, symbol, new_en))
+
+    return newDFA
 
 
 regexp = input("정규식을 입력해 주세요 : ")
@@ -111,22 +184,19 @@ dfaStateToSetOfNFAStates.append(eClousers[0]) # 0번이 startState 이므로
 mDFA = DFA()
 mDFA.symbols = mNFA.symbols
 mDFA.num_of_state = 1 # 일단 시작 상태 1개가 들어간 상태로 시작한다.
+if (hasFinalState(eClousers[0])):
+    mDFA.final_states.append(0)
 
 parseNFAtoDFA()
-
+mDFA = DFAtoMDFA(mDFA)
 
 f = open('auto_dfa.txt','w',encoding='utf-8')
 
 for symbol in mDFA.symbols:
-    sys.stdout.write(symbol)
     f.write(symbol)
-print("\n%d"%mDFA.num_of_state)
 f.write("\n%d"%mDFA.num_of_state)
-
-print("%d"%len(mDFA.transition_list))
 f.write("\n%d"%len(mDFA.transition_list))
 for trans in mDFA.transition_list:
-    print("%d %s %d"%(trans[0], trans[1], trans[2]))
     f.write("\n%d %s %d" %(trans[0], trans[1], trans[2]))
 
 print ('Parsing RegExp to DFA Completed!')

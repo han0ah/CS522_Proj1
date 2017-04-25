@@ -1,5 +1,4 @@
 # http://www.dabeaz.com/ply/ply.html 의 PLY 예시 소스코드를 참조하여 수정하였습니다.
-# http://matt.might.net/articles/parsing-regex-with-recursive-descent/ 참조
 import ply.lex as lex
 
 ######################### lex에 대한 정의 ###########################
