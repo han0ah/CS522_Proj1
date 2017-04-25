@@ -9,7 +9,6 @@ class DFA():
         self.final_states = []
         self.symbols = []
 
-
 mDFA = None
 mNFA = None
 eClousers = [] # NFA 각 state 들의 epsilon clouser
@@ -96,9 +95,13 @@ def parseNFAtoDFA():
         i += 1
 
 
-
-regexp = "((ㄱ+ㄴ+ㄷ+ㄹ+ㅁ+ㅂ+ㅅ+ㅇ+ㅈ+ㅊ+ㅋ+ㅌ+ㅍ+ㅎ+ㅃ+ㅉ+ㄸ+ㄲ+ㅆ)(ㅏ+ㅐ+ㅑ+ㅒ+ㅓ+ㅔ+ㅕ+ㅖ+ㅗ+ㅗㅏ+ㅗㅐ+ㅗㅣ+ㅛ+ㅜ+ㅜㅓ+ㅜㅔ+ㅜㅣ+ㅠ+ㅡ+ㅡㅣ+ㅣ)(e+ㄱ+ㄲ+ㄱㅅ+ㄴ+ㄴㅈ+ㄴㅎ+ㄷ+ㄹ+ㄹㄱ+ㄹㅁ+ㄹㅂ+ㄹㅅ+ㄹㅌ+ㄹㅍ+ㄹㅎ+ㅁ+ㅂ+ㅂㅅ+ㅅ+ㅆ+ㅇ+ㅈ+ㅊ+ㅋ+ㅌ+ㅍ+ㅎ))*"
+regexp = input("정규식을 입력해 주세요 : ")
+#regexp = "((ㄱ+ㄴ+ㄷ+ㄹ+ㅁ+ㅂ+ㅅ+ㅇ+ㅈ+ㅊ+ㅋ+ㅌ+ㅍ+ㅎ+ㅃ+ㅉ+ㄸ+ㄲ+ㅆ)(ㅏ+ㅐ+ㅑ+ㅒ+ㅓ+ㅔ+ㅕ+ㅖ+ㅗ+ㅗㅏ+ㅗㅐ+ㅗㅣ+ㅛ+ㅜ+ㅜㅓ+ㅜㅔ+ㅜㅣ+ㅠ+ㅡ+ㅡㅣ+ㅣ)(e+ㄱ+ㄲ+ㄱㅅ+ㄴ+ㄴㅈ+ㄴㅎ+ㄷ+ㄹ+ㄹㄱ+ㄹㅁ+ㄹㅂ+ㄹㅅ+ㄹㅌ+ㄹㅍ+ㄹㅎ+ㅁ+ㅂ+ㅂㅅ+ㅅ+ㅆ+ㅇ+ㅈ+ㅊ+ㅋ+ㅌ+ㅍ+ㅎ))*"
 mNFA = getNFAfromRegExpStr(regexp)
+if (mNFA == None):
+    print('Fail to parse')
+    exit(0)
+
 mNFA.buildDeltaTransition()
 mNFA.buildSymbols()
 
@@ -126,5 +129,5 @@ for trans in mDFA.transition_list:
     print("%d %s %d"%(trans[0], trans[1], trans[2]))
     f.write("\n%d %s %d" %(trans[0], trans[1], trans[2]))
 
-
+print ('Parsing RegExp to DFA Completed!')
 f.close()

@@ -2,6 +2,7 @@
 # http://matt.might.net/articles/parsing-regex-with-recursive-descent/ 참조
 import ply.lex as lex
 
+######################### lex에 대한 정의 ###########################
 # List of token names.   This is always required
 tokens = (
    'SYMBOL',
@@ -34,8 +35,44 @@ def t_error(t):
 # Build the lexer
 lexer = lex.lex()
 
-regExpStr = '((a+bc+c)(t+ry))*'
-lexer.input(regExpStr)
+####### Parsing 시 호출되며 구성하기 위한 AST에 대한 정의 #######
+# AST의 node 하나를 나타내는 class
+class NodeInAST():
+    def __init__(self,tag):
+        self.tag = tag
+        self.left_child = None
+        self.right_child = None
+
+# F -> F*
+def get_star_value(p):
+    newNode = NodeInAST('*')
+    newNode.left_child = p[0]
+    return newNode
+
+# T -> TF
+def get_concate_value(p):
+    newNode = NodeInAST('.')
+    newNode.left_child = p[0]
+    newNode.right_child = p[1]
+    return newNode
+
+# E -> E+T
+def get_plus_value(p):
+    newNode = NodeInAST('+')
+    newNode.left_child = p[0]
+    newNode.right_child = p[2]
+    return newNode
+
+# P -> (E)
+def get_paren_value(p):
+    return p[1]
+
+# P -> Symbol
+def get_symbol_value(p):
+    return NodeInAST(p[0])
+
+
+######################### Parsing 구현 ###########################
 
 # Stack에 들어가는 옵션 'P', 'T', 'F', 'E'
 parse_stack = []
@@ -43,10 +80,11 @@ parse_stack = []
 rules = []
 
 # regular expression의 기본 rule
+# 0(symbol), 1(parenthe), 2, 3(star), 4, 5(plus), 6
 rules.append([(['SYMBOL'], 'P'),(['LPAREN','E','RPAREN'], 'P'),
             (['P','F']), (['F','STAR'], 'F'),
             (['T','F'], 'T'),
-            (['E','PLUS','T'], 'E'), (['T'], 'E')])
+            (['E','PLUS','T'], 'E')])
 # stack에서 함부로 사용할 수 없는 rule
 rules.append([(['F'],'T')])
 rules.append([(['T'],'E')])
@@ -77,39 +115,60 @@ def updateStackTop(useRule1=True, useRule2=False, useRule3=False):
                     same_pattern=False
                     break
 
+            params = []
             if( same_pattern ):
                 for i in range(rulelen):
-                    parse_stack.pop()
-                parse_stack.append((rule[1], 'Some_Value'))
+                    t=parse_stack.pop()
+                    params.append(t[1])
+                params.reverse()
+
+                # stack top을 보면서 rule 변환에 따르는 알맞은 AST 생성(조합) 값을 설정해준다.
+                if (rule[0][0] == 'SYMBOL'):
+                    new_value = get_symbol_value(params)
+                elif (rule[0][0] == 'LPAREN'):
+                    new_value = get_paren_value(params)
+                elif (rulelen > 1 and rule[0][0] == 'F' and rule[0][1] == 'STAR'):
+                    new_value = get_star_value(params)
+                elif (rulelen > 1 and rule[0][0] == 'E' and rule[0][1] == 'PLUS'):
+                    new_value = get_plus_value(params)
+                elif (rulelen > 1 and rule[0][0] == 'T' and rule[0][1] == 'F'):
+                    new_value = get_concate_value(params)
+                else:
+                    new_value = params[0]
+
+                parse_stack.append((rule[1], new_value))
                 return True
 
-            debug = 1
     return False
 
 
-updateStackTop()
-# 반복문을 돌면서 Token을 하나씩 소비한다.
-while True:
-    tok = lexer.token()
-    if not tok:
-        break
 
-    # Stack에 Special Rule 적용
-    if(len(parse_stack) > 0):
-        if (parse_stack[-1][0] == 'F'): # T -> F Rule 적용 ( stack 에서는 F 가 T로 변함 )
-            if (tok.type != 'STAR'):
-                updateStackTop(useRule2=True)
-        if (parse_stack[-1][0] == 'T'): # E -> T Rule 적용 ( stack 에서는 T 가 E로 변함 )
-            if (tok.type == 'RPAREN' or tok.type == 'PLUS'):
-                updateStackTop(useRule3=True)
+def getASTfromRegExpStr(regExpStr):
+    lexer.input(regExpStr)
 
-    parse_stack.append((tok.type, tok.value))
+    # 반복문을 돌면서 Token을 하나씩 소비한다.
+    while True:
+        tok = lexer.token()
+        if not tok:
+            break
 
-    while(updateStackTop()):
+        # Stack에 Special Rule 적용
+        if(len(parse_stack) > 0):
+            if (parse_stack[-1][0] == 'F'): # T -> F Rule 적용 ( stack 에서는 F 가 T로 변함 )
+                if (tok.type != 'STAR'):
+                    updateStackTop(useRule2=True)
+            if (parse_stack[-1][0] == 'T'): # E -> T Rule 적용 ( stack 에서는 T 가 E로 변함 )
+                if (tok.type == 'RPAREN' or tok.type == 'PLUS'):
+                    updateStackTop(useRule3=True)
+
+        parse_stack.append((tok.type, tok.value))
+
+        while(updateStackTop()):
+            pass
+
+    while(updateStackTop(useRule2=True, useRule3=True)):
         pass
-    print(tok)
 
-while(updateStackTop(useRule2=True, useRule3=True)):
-    pass
-
-debug = 1
+    if (len(parse_stack) == 1 and parse_stack[0][0] == 'E'):
+        return parse_stack[0][1]
+    return None

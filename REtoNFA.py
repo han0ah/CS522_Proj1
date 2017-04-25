@@ -1,6 +1,6 @@
 # 교과서 TP 3.Regular Languages 15~16page를 참고하여 구현하였습니다.
 
-from REtoAST import getASTfromRegExpStr, NodeInAST
+from REtoAST2 import getASTfromRegExpStr, NodeInAST
 
 class EpsilonNFA():
     def __init__(self,node:NodeInAST):
@@ -111,11 +111,14 @@ class EpsilonNFA():
 
 def getNFAfromRegExpStr(regexp):
     ast = getASTfromRegExpStr(regexp)
+    if (ast == None):
+        return None
     eNFA = EpsilonNFA(ast)
     return eNFA
 
 '''
 # Test Code for epsilon NFA Construction
+eNFA = getNFAfromRegExpStr('abc')
 for trans in eNFA.transition_list:
     print("%d %s %d"%(trans[0], trans[1], trans[2]))
 print(eNFA.final_state)

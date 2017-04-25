@@ -58,6 +58,8 @@ def p_error(p):
     print("Syntax error in input!")
 
 # RegularExpression 문자열로 부터 AST를 얻는다.
+'''
 def getASTfromRegExpStr(s):
     parser = yacc.yacc()
     return parser.parse(s)
+'''
